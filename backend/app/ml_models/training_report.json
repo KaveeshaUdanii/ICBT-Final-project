@@ -1,0 +1,170 @@
+{
+  "generated_at": "2026-08-07T18:11:01.051671+00:00",
+  "dataset": "synthetic (Faker + numpy)",
+  "supplier_risk_scoring_model": {
+    "algorithm": "Logistic Regression + Random Forest (ensemble average)",
+    "features": [
+      "on_time_delivery_rate",
+      "defect_rate",
+      "cancellation_rate",
+      "avg_lead_time_days",
+      "order_volume_last_year"
+    ],
+    "training_samples": 487,
+    "test_samples": 163,
+    "logistic_regression": {
+      "accuracy": 0.7853,
+      "precision": 0.6705,
+      "recall": 0.9077,
+      "f1_score": 0.7712,
+      "roc_auc": 0.913
+    },
+    "random_forest": {
+      "accuracy": 0.8221,
+      "precision": 0.75,
+      "recall": 0.8308,
+      "f1_score": 0.7883,
+      "roc_auc": 0.886
+    },
+    "ensemble": {
+      "accuracy": 0.8037,
+      "precision": 0.7037,
+      "recall": 0.8769,
+      "f1_score": 0.7808,
+      "roc_auc": 0.9024
+    },
+    "feature_importance_random_forest": {
+      "on_time_delivery_rate": 0.2338,
+      "defect_rate": 0.2241,
+      "cancellation_rate": 0.2651,
+      "avg_lead_time_days": 0.1887,
+      "order_volume_last_year": 0.0884
+    }
+  },
+  "delay_prediction_model": {
+    "algorithm": "XGBoost (classifier for delay probability + regressor for delay magnitude)",
+    "features": [
+      "supplier_on_time_rate",
+      "supplier_defect_rate",
+      "supplier_cancellation_rate",
+      "supplier_avg_lead_time_days",
+      "order_quantity",
+      "quantity_per_lead_time",
+      "month_sin",
+      "month_cos",
+      "requested_lead_time_days",
+      "supplier_order_volume_last_year"
+    ],
+    "training_samples": 3150,
+    "test_samples": 1050,
+    "classifier_metrics": {
+      "accuracy": 0.8143,
+      "precision": 0.847,
+      "recall": 0.9428,
+      "f1_score": 0.8923,
+      "roc_auc": 0.7537
+    },
+    "regressor_metrics": {
+      "mae_days": 3.665,
+      "rmse_days": 5.792
+    },
+    "feature_importance": {
+      "supplier_on_time_rate": 0.1541,
+      "supplier_defect_rate": 0.1024,
+      "supplier_cancellation_rate": 0.1102,
+      "supplier_avg_lead_time_days": 0.0704,
+      "order_quantity": 0.0855,
+      "quantity_per_lead_time": 0.1152,
+      "month_sin": 0.1167,
+      "month_cos": 0.0931,
+      "requested_lead_time_days": 0.0844,
+      "supplier_order_volume_last_year": 0.0682
+    }
+  },
+  "anomaly_detection_model": {
+    "algorithm": "Isolation Forest (unsupervised)",
+    "features": [
+      "quantity",
+      "requested_lead_time_days",
+      "supplier_on_time_rate",
+      "supplier_defect_rate",
+      "supplier_cancellation_rate",
+      "month_sin",
+      "month_cos"
+    ],
+    "training_samples": 3000,
+    "contamination": 0.07,
+    "evaluation_against_injected_anomalies": {
+      "accuracy": 0.909,
+      "precision": 0.319,
+      "recall": 0.3401,
+      "f1_score": 0.3292
+    },
+    "note": "Metrics are evaluated against synthetically injected anomalies for validation purposes only; the model itself is trained unsupervised, matching the proposal's design."
+  },
+  "demand_forecasting_model": {
+    "algorithm": "Gradient Boosting Regressor",
+    "features": [
+      "quantity_on_hand",
+      "reorder_level",
+      "unit_cost",
+      "lead_time_days",
+      "supplier_on_time_rate",
+      "month_sin",
+      "month_cos",
+      "quantity_to_reorder_ratio"
+    ],
+    "training_samples": 2625,
+    "test_samples": 875,
+    "regressor_metrics": {
+      "mae_units": 27.18,
+      "rmse_units": 36.1,
+      "mean_actual_demand_units": 120.12,
+      "mae_as_pct_of_mean": 22.6
+    },
+    "feature_importance": {
+      "quantity_on_hand": 0.0246,
+      "reorder_level": 0.4381,
+      "unit_cost": 0.094,
+      "lead_time_days": 0.0549,
+      "supplier_on_time_rate": 0.0838,
+      "month_sin": 0.2128,
+      "month_cos": 0.0673,
+      "quantity_to_reorder_ratio": 0.0246
+    },
+    "note": "Additional model beyond the proposal's 3 required models -- predicts next-30-day material consumption to support proactive procurement (Warehouse Manager dashboard)."
+  },
+  "stockout_risk_model": {
+    "algorithm": "Gradient Boosting Classifier",
+    "features": [
+      "quantity_on_hand",
+      "reorder_level",
+      "lead_time_days",
+      "supplier_on_time_rate",
+      "month_sin",
+      "month_cos",
+      "quantity_to_reorder_ratio",
+      "expected_demand_next_30_days"
+    ],
+    "training_samples": 2625,
+    "test_samples": 875,
+    "classifier_metrics": {
+      "accuracy": 0.9074,
+      "precision": 0.7973,
+      "recall": 0.6982,
+      "f1_score": 0.7445,
+      "roc_auc": 0.8984
+    },
+    "feature_importance": {
+      "quantity_on_hand": 0.2791,
+      "reorder_level": 0.0209,
+      "lead_time_days": 0.1219,
+      "supplier_on_time_rate": 0.012,
+      "month_sin": 0.0076,
+      "month_cos": 0.0067,
+      "quantity_to_reorder_ratio": 0.4759,
+      "expected_demand_next_30_days": 0.0759
+    },
+    "note": "Additional model beyond the proposal's 3 required models -- consumes the Demand Forecasting Model's prediction as one of its own input features (a stacked pipeline)."
+  }
+}
