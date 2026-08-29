@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { BrainCircuit, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { BrainCircuit, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { suppliersApi, aiApi } from "../api/endpoints";
 import { apiErrorMessage } from "../api/client";
 import type { Supplier } from "../types";
@@ -12,6 +12,7 @@ import { Field, Input, Select } from "../components/ui/Input";
 import { Modal } from "../components/ui/Modal";
 import { EmptyState, LoadingState, PageHeader } from "../components/ui/Feedback";
 import { ExplanationPanel } from "../components/ExplanationPanel";
+import { CsvImportModal } from "../components/CsvImportModal";
 import type { ExplanationResult } from "../types";
 
 const CATEGORIES = ["fabric", "buttons", "zippers", "thread", "packaging", "trims", "dye_chemicals"];
@@ -39,6 +40,7 @@ export function SuppliersPage() {
   const [saving, setSaving] = useState(false);
   const [scoringId, setScoringId] = useState<number | null>(null);
   const [explanation, setExplanation] = useState<ExplanationResult | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const user = useAuthStore((s) => s.user);
   const canManage = user?.role === "admin" || user?.role === "supply_chain_manager";
 
@@ -144,6 +146,11 @@ export function SuppliersPage() {
               />
             </div>
             {canManage && (
+              <Button variant="secondary" onClick={() => setImportOpen(true)} size="sm">
+                <Upload className="h-4 w-4" /> Import CSV
+              </Button>
+            )}
+            {canManage && (
               <Button onClick={openCreate} size="sm">
                 <Plus className="h-4 w-4" /> Add Supplier
               </Button>
@@ -184,10 +191,14 @@ export function SuppliersPage() {
                       {(supplier.on_time_delivery_rate * 100).toFixed(0)}%
                     </td>
                     <td className="px-5 py-3 text-[var(--text-secondary)]">
-                      {supplier.last_scored_at ? `${supplier.risk_score.toFixed(0)}%` : "—"}
+                      {supplier.last_scored_at && supplier.risk_score !== undefined
+                        ? `${supplier.risk_score.toFixed(0)}%`
+                        : "—"}
                     </td>
                     <td className="px-5 py-3">
-                      <Badge tone={riskTone(supplier.risk_level)}>{supplier.risk_level}</Badge>
+                      {supplier.risk_level && (
+                        <Badge tone={riskTone(supplier.risk_level)}>{supplier.risk_level}</Badge>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-1.5">
@@ -305,9 +316,32 @@ export function SuppliersPage() {
         </div>
       </Modal>
 
-      <Modal open={!!explanation} onClose={() => setExplanation(null)} title="AI Risk Explanation (XAI)" width="max-w-xl">
+      <Modal open={!!explanation} onClose={() => setExplanation(null)} title="Why This Risk Score?" width="max-w-xl">
         {explanation && <ExplanationPanel explanation={explanation} />}
       </Modal>
+
+      <CsvImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title="Import Suppliers from CSV"
+        description="Bulk-add suppliers from a CSV export, the way most ERP systems bring data in."
+        templateFilename="suppliers_template.csv"
+        templateColumns={[
+          "name",
+          "contact_email",
+          "contact_phone",
+          "country",
+          "category",
+          "on_time_delivery_rate",
+          "defect_rate",
+          "cancellation_rate",
+          "avg_lead_time_days",
+          "order_volume_last_year",
+        ]}
+        templateExampleRow={["Acme Textiles Ltd", "contact@acme.example", "+94 11 234 5678", "Sri Lanka", "fabric", 0.92, 0.02, 0.01, 12, 80]}
+        importFn={suppliersApi.importCsv}
+        onImported={load}
+      />
     </div>
   );
 }

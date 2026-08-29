@@ -9,13 +9,6 @@ import { GlassCard } from "../components/ui/GlassCard";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Input";
 
-const DEMO_ACCOUNTS = [
-  { label: "Admin", email: "admin@supplychain.ai", password: "admin123" },
-  { label: "Supply Chain Manager", email: "manager@supplychain.ai", password: "manager123" },
-  { label: "Warehouse Manager", email: "warehouse@supplychain.ai", password: "warehouse123" },
-  { label: "Supplier Portal", email: "supplier@supplychain.ai", password: "supplier123" },
-];
-
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +35,7 @@ export function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <GlassCard strong className="w-full max-w-md p-8">
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-3">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-3">
             <BrainCircuit className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-xl font-semibold text-[var(--text-primary)]">SupplyChain AI</h1>
@@ -81,25 +74,6 @@ export function LoginPage() {
             Create one
           </Link>
         </p>
-
-        <div className="mt-6 pt-5 border-t border-white/10">
-          <p className="text-xs text-[var(--text-muted)] mb-2 text-center">Quick demo login</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.email}
-                type="button"
-                onClick={() => {
-                  setEmail(acc.email);
-                  setPassword(acc.password);
-                }}
-                className="text-xs px-2.5 py-1 rounded-full glass-panel hover:border-indigo-400/40 transition text-[var(--text-secondary)]"
-              >
-                {acc.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </GlassCard>
     </div>
   );

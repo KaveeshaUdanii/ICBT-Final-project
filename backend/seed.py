@@ -71,9 +71,9 @@ def _email_slug(name: str) -> str:
 
 def seed_users(db) -> None:
     demo_users = [
-        ("Admin User", "admin@supplychain.ai", "admin123", UserRole.ADMIN),
-        ("Nadeesha Perera", "manager@supplychain.ai", "manager123", UserRole.SUPPLY_CHAIN_MANAGER),
-        ("Kasun Silva", "warehouse@supplychain.ai", "warehouse123", UserRole.WAREHOUSE_MANAGER),
+        ("Admin User", "admin@gmail.com", "admin123", UserRole.ADMIN),
+        ("Nadeesha Perera", "manager@gmail.com", "manager123", UserRole.SUPPLY_CHAIN_MANAGER),
+        ("Kasun Silva", "warehouse@gmail.com", "warehouse123", UserRole.WAREHOUSE_MANAGER),
     ]
     for name, email, password, role in demo_users:
         if db.query(User).filter(User.email == email).first():
@@ -87,7 +87,7 @@ def seed_supplier_portal_user(db, suppliers: list[Supplier]) -> None:
     """The Supplier role is an external-party login, so unlike the internal roles above
     it must be linked to exactly one Supplier record -- that link is what the API uses
     everywhere to make sure this account only ever sees its own data."""
-    email = "supplier@supplychain.ai"
+    email = "supplier@gmail.com"
     if db.query(User).filter(User.email == email).first():
         return
     linked_supplier = next((s for s in suppliers if s.name == "Colombo Textile Mills"), suppliers[0])
@@ -204,6 +204,13 @@ def seed_purchase_orders_and_shipments(db, suppliers: list[Supplier], materials:
                 else random.choice([PurchaseOrderStatus.PENDING_APPROVAL, PurchaseOrderStatus.APPROVED])
             )
 
+            # A PO that has already progressed to approved/completed implies the supplier
+            # engaged with it at some point -- only a still-pending-approval PO should show
+            # up as "awaiting your response" in the supplier portal's accept/decline workflow.
+            supplier_response = (
+                "accepted" if status in (PurchaseOrderStatus.APPROVED, PurchaseOrderStatus.COMPLETED) else "pending"
+            )
+
             po = PurchaseOrder(
                 po_number=po_number,
                 supplier_id=supplier.id,
@@ -213,6 +220,7 @@ def seed_purchase_orders_and_shipments(db, suppliers: list[Supplier], materials:
                 order_date=order_date,
                 expected_delivery_date=expected,
                 status=status,
+                supplier_response=supplier_response,
             )
             db.add(po)
             db.commit()
@@ -279,7 +287,7 @@ def main() -> None:
         materials = seed_materials(db, suppliers)
         seed_purchase_orders_and_shipments(db, suppliers, materials)
         run_ai_scoring(db)
-        print("\nSeed complete. Demo login: admin@supplychain.ai / admin123")
+        print("\nSeed complete. Demo login: admin@gmail.com / admin123")
     finally:
         db.close()
 

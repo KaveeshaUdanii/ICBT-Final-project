@@ -56,7 +56,7 @@ export function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={toggleOpen}
-        className="relative rounded-full p-2.5 glass-panel hover:border-indigo-400/40 transition"
+        className="relative rounded-full p-2.5 text-[var(--text-secondary)] hover:bg-black/5 dark:hover:bg-white/5 transition"
         aria-label="Notifications"
       >
         <Bell className="h-4.5 w-4.5 text-[var(--text-secondary)]" />

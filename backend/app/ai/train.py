@@ -1,15 +1,23 @@
 """
-Trains the three models of the AI Risk Prediction Engine (module 6) on synthetic data
-and persists them (plus a performance report) to app/ml_models/. Run directly:
+Trains the five models of the AI Risk Prediction Engine (module 6) and persists them (plus a
+performance report) to app/ml_models/. Run directly:
 
     python -m app.ai.train
+
+Training data comes from ml_pipeline/data/processed/*.csv -- the cleaned, feature-engineered
+output of the preprocessing/EDA notebooks in ml_pipeline/notebooks/ (themselves cleaning the
+large, deliberately messy source records in ml_pipeline/data/raw/). This guarantees the model
+serving live predictions is provably trained on the exact same cleaned dataset the notebooks
+document and analyze, not a second, independently-generated copy.
 """
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import joblib
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, IsolationForest, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
@@ -17,17 +25,22 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier, XGBRegressor
 
-from app.ai.data_generation import (
-    generate_material_demand_training_frame,
-    generate_materials,
-    generate_shipments_training_frame,
-    generate_suppliers,
-    suppliers_to_training_frame,
-)
 from app.ai.features import FEATURES_ANOMALY, FEATURES_DELAY, FEATURES_DEMAND, FEATURES_RISK, FEATURES_STOCKOUT
 from app.core.config import settings
 
 MODELS_DIR = settings.ML_MODELS_DIR
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+PROCESSED_DIR = BACKEND_DIR / "ml_pipeline" / "data" / "processed"
+
+
+def _load_processed(filename: str) -> pd.DataFrame:
+    path = PROCESSED_DIR / filename
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found. Run `python -m ml_pipeline.build_source_datasets` and execute the "
+            f"notebooks in ml_pipeline/notebooks/ first (or restore the committed processed CSVs)."
+        )
+    return pd.read_csv(path)
 
 
 def _clf_metrics(y_true, y_pred, y_proba=None) -> dict:
@@ -56,8 +69,7 @@ def _save_feature_stats(existing: dict, key: str, df, features: list[str]) -> di
 
 
 def train_supplier_risk_models(report: dict, feature_stats: dict) -> None:
-    suppliers = generate_suppliers()
-    df = suppliers_to_training_frame(suppliers)
+    df = _load_processed("supplier_performance_cleaned.csv")
     _save_feature_stats(feature_stats, "risk", df, FEATURES_RISK)
     X = df[FEATURES_RISK].values
     y = df["is_high_risk"].values
@@ -98,8 +110,7 @@ def train_supplier_risk_models(report: dict, feature_stats: dict) -> None:
 
 
 def train_delay_models(report: dict, feature_stats: dict) -> None:
-    suppliers = generate_suppliers(seed=7)
-    df = generate_shipments_training_frame(suppliers, n=4200, seed=7)
+    df = _load_processed("shipment_logistics_cleaned.csv")
     _save_feature_stats(feature_stats, "delay", df, FEATURES_DELAY)
 
     X = df[FEATURES_DELAY].values
@@ -151,8 +162,7 @@ def train_delay_models(report: dict, feature_stats: dict) -> None:
 
 
 def train_anomaly_model(report: dict, feature_stats: dict) -> None:
-    suppliers = generate_suppliers(seed=13)
-    df = generate_shipments_training_frame(suppliers, n=3000, seed=13)
+    df = _load_processed("shipment_logistics_cleaned.csv")
     _save_feature_stats(feature_stats, "anomaly", df, FEATURES_ANOMALY)
 
     X = df[FEATURES_ANOMALY].values
@@ -182,8 +192,7 @@ def train_demand_forecast_model(report: dict, feature_stats: dict) -> None:
     """Demand Forecasting Model (module addition #1): predicts a raw material's expected
     consumption over the next 30 days, so warehouse staff can reorder proactively instead
     of only reacting once stock has already crossed the reorder line."""
-    materials = generate_materials(seed=21)
-    df = generate_material_demand_training_frame(materials, n=3500, seed=21)
+    df = _load_processed("inventory_demand_cleaned.csv")
     _save_feature_stats(feature_stats, "demand", df, FEATURES_DEMAND)
 
     X = df[FEATURES_DEMAND].values
@@ -191,8 +200,11 @@ def train_demand_forecast_model(report: dict, feature_stats: dict) -> None:
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
 
+    # Hyperparameters tuned via GridSearchCV in ml_pipeline/notebooks/03_..._modeling.ipynb
+    # (Section 9g) -- a ~13% MAE reduction over the untuned defaults previously used here,
+    # confirmed via the same 5-fold cross-validation the algorithm benchmark itself uses.
     model = GradientBoostingRegressor(
-        n_estimators=300, max_depth=4, learning_rate=0.05, subsample=0.9, random_state=42
+        n_estimators=400, max_depth=5, learning_rate=0.08, subsample=0.9, random_state=42
     )
     model.fit(X_train, y_train)
     pred = np.clip(model.predict(X_test), 0, None)
@@ -224,8 +236,7 @@ def train_stockout_risk_model(report: dict, feature_stats: dict) -> None:
     will run out before replenishment arrives, given current stock, lead time, supplier
     reliability, and the Demand Forecasting Model's own predicted demand as an input
     feature -- a small two-stage pipeline (forecast -> risk), not two independent models."""
-    materials = generate_materials(seed=27)
-    df = generate_material_demand_training_frame(materials, n=3500, seed=27)
+    df = _load_processed("inventory_demand_cleaned.csv")
     _save_feature_stats(feature_stats, "stockout", df, FEATURES_STOCKOUT)
 
     X = df[FEATURES_STOCKOUT].values
@@ -252,8 +263,44 @@ def train_stockout_risk_model(report: dict, feature_stats: dict) -> None:
     }
 
 
+def train_chatbot_intent_model(report: dict) -> None:
+    """Supplier Portal chatbot (6th model, addition beyond the proposal's required set): a
+    local TF-IDF + Logistic Regression intent classifier, trained on a small fixed set of
+    example phrasings -- no external API/LLM involved. See app/ai/chatbot.py for the intent
+    list and the router that answers each intent from real, scoped backend data."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    from app.ai.chatbot import TRAINING_EXAMPLES
+
+    texts = [t for t, _ in TRAINING_EXAMPLES]
+    labels = [label for _, label in TRAINING_EXAMPLES]
+
+    vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=1, lowercase=True)
+    X = vectorizer.fit_transform(texts)
+
+    clf = LogisticRegression(max_iter=1000)
+    clf.fit(X, labels)
+    train_accuracy = float(clf.score(X, labels))
+
+    joblib.dump(vectorizer, MODELS_DIR / "chatbot_vectorizer.joblib")
+    joblib.dump(clf, MODELS_DIR / "chatbot_intent_classifier.joblib")
+
+    report["chatbot_intent_model"] = {
+        "algorithm": "TF-IDF (1-2 grams) + Logistic Regression",
+        "intents": sorted(set(labels)),
+        "training_examples": len(texts),
+        "training_accuracy": round(train_accuracy, 4),
+        "note": "Local, no-external-API chatbot for the Supplier Portal -- classifies intent only; "
+        "every answer is generated from the caller's own real, scoped backend data, not the model.",
+    }
+
+
 def main() -> dict:
-    report: dict = {"generated_at": datetime.now(timezone.utc).isoformat(), "dataset": "synthetic (Faker + numpy)"}
+    report: dict = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "dataset": "synthetic (Faker + numpy), cleaned via the ml_pipeline/notebooks/ preprocessing "
+        "pipeline -- see ml_pipeline/data/processed/*.csv",
+    }
     feature_stats: dict = {}
 
     train_supplier_risk_models(report, feature_stats)
@@ -261,6 +308,7 @@ def main() -> dict:
     train_anomaly_model(report, feature_stats)
     train_demand_forecast_model(report, feature_stats)
     train_stockout_risk_model(report, feature_stats)
+    train_chatbot_intent_model(report)
 
     with open(MODELS_DIR / "training_report.json", "w") as f:
         json.dump(report, f, indent=2)

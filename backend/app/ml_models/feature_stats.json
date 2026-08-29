@@ -1,240 +1,240 @@
 {
   "risk": {
     "on_time_delivery_rate": {
-      "mean": 0.87323,
-      "std": 0.070967,
-      "min": 0.6532,
+      "mean": 0.871355,
+      "std": 0.070226,
+      "min": 0.6327,
       "max": 0.999
     },
     "defect_rate": {
-      "mean": 0.037329,
-      "std": 0.020848,
+      "mean": 0.037337,
+      "std": 0.020205,
       "min": 0.0,
-      "max": 0.1065
+      "max": 0.1137
     },
     "cancellation_rate": {
-      "mean": 0.033228,
-      "std": 0.020239,
+      "mean": 0.03966,
+      "std": 0.077155,
       "min": 0.0,
-      "max": 0.1072
+      "max": 1.0
     },
     "avg_lead_time_days": {
-      "mean": 16.842308,
-      "std": 5.546379,
+      "mean": 16.8391,
+      "std": 5.458355,
       "min": 3.0,
       "max": 37.6
     },
     "order_volume_last_year": {
-      "mean": 103.761538,
-      "std": 39.083649,
+      "mean": 104.565,
+      "std": 37.45708,
       "min": 5.0,
       "max": 227.0
     }
   },
   "delay": {
     "supplier_on_time_rate": {
-      "mean": 0.868375,
-      "std": 0.072724,
-      "min": 0.6415,
+      "mean": 0.867944,
+      "std": 0.072627,
+      "min": 0.641,
       "max": 0.999
     },
     "supplier_defect_rate": {
-      "mean": 0.039037,
-      "std": 0.021226,
+      "mean": 0.038733,
+      "std": 0.021358,
       "min": 0.0,
       "max": 0.1061
     },
     "supplier_cancellation_rate": {
-      "mean": 0.034671,
-      "std": 0.02022,
+      "mean": 0.034954,
+      "std": 0.020111,
       "min": 0.0,
       "max": 0.1003
     },
     "supplier_avg_lead_time_days": {
-      "mean": 17.319333,
-      "std": 5.63816,
+      "mean": 17.319389,
+      "std": 5.70203,
       "min": 3.2,
       "max": 36.5
     },
     "order_quantity": {
-      "mean": 752.848862,
-      "std": 437.068695,
-      "min": 5.896494,
-      "max": 4392.927855
+      "mean": 744.297957,
+      "std": 401.590948,
+      "min": 3.0,
+      "max": 4784.6
     },
     "quantity_per_lead_time": {
-      "mean": 60.061827,
-      "std": 64.044781,
-      "min": 0.294825,
-      "max": 973.360714
+      "mean": 60.956949,
+      "std": 65.675766,
+      "min": 0.111111,
+      "max": 1444.0
     },
     "month_sin": {
-      "mean": 0.114259,
-      "std": 0.702955,
+      "mean": 0.115317,
+      "std": 0.700088,
       "min": -1.0,
       "max": 1.0
     },
     "month_cos": {
-      "mean": -0.050484,
-      "std": 0.700346,
+      "mean": -0.054272,
+      "std": 0.702602,
       "min": -1.0,
       "max": 1.0
     },
     "requested_lead_time_days": {
-      "mean": 16.912619,
-      "std": 7.308481,
+      "mean": 16.879077,
+      "std": 7.404662,
       "min": 3.0,
-      "max": 47.0
+      "max": 54.0
     },
     "supplier_order_volume_last_year": {
-      "mean": 102.592857,
-      "std": 40.26736,
+      "mean": 102.72372,
+      "std": 39.87559,
       "min": 5.0,
-      "max": 211.0
+      "max": 262.0
     }
   },
   "anomaly": {
     "quantity": {
-      "mean": 745.880603,
-      "std": 402.066543,
-      "min": 20.0,
-      "max": 3999.987037
+      "mean": 744.297957,
+      "std": 401.590948,
+      "min": 3.0,
+      "max": 4784.6
     },
     "requested_lead_time_days": {
-      "mean": 17.008333,
-      "std": 7.476467,
+      "mean": 16.879077,
+      "std": 7.404662,
       "min": 3.0,
-      "max": 47.0
+      "max": 54.0
     },
     "supplier_on_time_rate": {
-      "mean": 0.869513,
-      "std": 0.070567,
-      "min": 0.6403,
+      "mean": 0.867944,
+      "std": 0.072627,
+      "min": 0.641,
       "max": 0.999
     },
     "supplier_defect_rate": {
-      "mean": 0.038946,
-      "std": 0.021978,
+      "mean": 0.038733,
+      "std": 0.021358,
       "min": 0.0,
-      "max": 0.1169
+      "max": 0.1061
     },
     "supplier_cancellation_rate": {
-      "mean": 0.035555,
-      "std": 0.020545,
+      "mean": 0.034954,
+      "std": 0.020111,
       "min": 0.0,
-      "max": 0.0986
+      "max": 0.1003
     },
     "month_sin": {
-      "mean": 0.102557,
-      "std": 0.699091,
+      "mean": 0.115317,
+      "std": 0.700088,
       "min": -1.0,
       "max": 1.0
     },
     "month_cos": {
-      "mean": -0.062668,
-      "std": 0.705092,
+      "mean": -0.054272,
+      "std": 0.702602,
       "min": -1.0,
       "max": 1.0
     }
   },
   "demand": {
     "quantity_on_hand": {
-      "mean": 215.478537,
-      "std": 161.342738,
+      "mean": 212.512962,
+      "std": 160.154031,
       "min": 0.0,
-      "max": 1188.985028
+      "max": 1254.5
     },
     "reorder_level": {
-      "mean": 164.1248,
-      "std": 53.022212,
+      "mean": 160.449402,
+      "std": 56.76898,
       "min": 10.0,
-      "max": 321.3
+      "max": 357.3
     },
     "unit_cost": {
-      "mean": 3.901433,
-      "std": 3.867853,
-      "min": 0.306176,
+      "mean": 3.735304,
+      "std": 3.68602,
+      "min": 0.3,
       "max": 60.0
     },
     "lead_time_days": {
-      "mean": 17.201143,
-      "std": 7.211229,
-      "min": 3.0,
-      "max": 47.0
+      "mean": 17.547951,
+      "std": 8.761902,
+      "min": 1.0,
+      "max": 90.0
     },
     "supplier_on_time_rate": {
-      "mean": 0.836201,
-      "std": 0.10984,
-      "min": 0.520336,
+      "mean": 0.839961,
+      "std": 0.108721,
+      "min": 0.447,
       "max": 0.99
     },
     "month_sin": {
-      "mean": 0.116566,
-      "std": 0.69876,
+      "mean": 0.121872,
+      "std": 0.700794,
       "min": -1.0,
       "max": 1.0
     },
     "month_cos": {
-      "mean": -0.005804,
-      "std": 0.705971,
+      "mean": -0.023655,
+      "std": 0.702494,
       "min": -1.0,
       "max": 1.0
     },
     "quantity_to_reorder_ratio": {
-      "mean": 1.315605,
-      "std": 0.845446,
+      "mean": 1.332023,
+      "std": 0.846746,
       "min": 0.0,
-      "max": 4.363883
+      "max": 18.75
     }
   },
   "stockout": {
     "quantity_on_hand": {
-      "mean": 216.37418,
-      "std": 163.093677,
+      "mean": 212.512962,
+      "std": 160.154031,
       "min": 0.0,
-      "max": 1382.638205
+      "max": 1254.5
     },
     "reorder_level": {
-      "mean": 163.662143,
-      "std": 60.339564,
-      "min": 23.9,
-      "max": 341.4
+      "mean": 160.449402,
+      "std": 56.76898,
+      "min": 10.0,
+      "max": 357.3
     },
     "lead_time_days": {
-      "mean": 17.330571,
-      "std": 7.610715,
-      "min": 3.0,
-      "max": 41.0
+      "mean": 17.547951,
+      "std": 8.761902,
+      "min": 1.0,
+      "max": 90.0
     },
     "supplier_on_time_rate": {
-      "mean": 0.840633,
-      "std": 0.107357,
-      "min": 0.466904,
+      "mean": 0.839961,
+      "std": 0.108721,
+      "min": 0.447,
       "max": 0.99
     },
     "month_sin": {
-      "mean": 0.123763,
-      "std": 0.7043,
+      "mean": 0.121872,
+      "std": 0.700794,
       "min": -1.0,
       "max": 1.0
     },
     "month_cos": {
-      "mean": -0.042119,
-      "std": 0.697962,
+      "mean": -0.023655,
+      "std": 0.702494,
       "min": -1.0,
       "max": 1.0
     },
     "quantity_to_reorder_ratio": {
-      "mean": 1.32809,
-      "std": 0.829214,
+      "mean": 1.332023,
+      "std": 0.846746,
       "min": 0.0,
-      "max": 4.397056
+      "max": 18.75
     },
     "expected_demand_next_30_days": {
-      "mean": 117.971566,
-      "std": 56.981525,
-      "min": 11.469209,
-      "max": 356.335303
+      "mean": 115.958078,
+      "std": 58.62504,
+      "min": 9.8,
+      "max": 419.9
     }
   }
 }

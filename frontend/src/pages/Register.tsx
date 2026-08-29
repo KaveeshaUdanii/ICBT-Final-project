@@ -37,7 +37,7 @@ export function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <GlassCard strong className="w-full max-w-md p-8">
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-3">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-3">
             <BrainCircuit className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-xl font-semibold text-[var(--text-primary)]">Create your account</h1>

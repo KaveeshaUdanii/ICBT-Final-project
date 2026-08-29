@@ -8,26 +8,12 @@ interface AuthState {
   clearAuth: () => void;
 }
 
-const STORAGE_KEY = "supplychain_auth";
-
-function loadInitial(): { token: string | null; user: User | null } {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { token: null, user: null };
-    return JSON.parse(raw);
-  } catch {
-    return { token: null, user: null };
-  }
-}
-
+// Deliberately not persisted to localStorage: every fresh app load (new tab, browser
+// restart, hard refresh) should land on the login screen rather than silently resuming a
+// prior session. setAuth/clearAuth only affect in-memory state for the current page load.
 export const useAuthStore = create<AuthState>((set) => ({
-  ...loadInitial(),
-  setAuth: (token, user) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
-    set({ token, user });
-  },
-  clearAuth: () => {
-    localStorage.removeItem(STORAGE_KEY);
-    set({ token: null, user: null });
-  },
+  token: null,
+  user: null,
+  setAuth: (token, user) => set({ token, user }),
+  clearAuth: () => set({ token: null, user: null }),
 }));

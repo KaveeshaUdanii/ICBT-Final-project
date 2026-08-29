@@ -184,6 +184,7 @@ def evaluate_shipment_prediction(db: Session, shipment: Shipment) -> None:
             related_entity_id=shipment.id,
             source="smart_contract",
         )
+        compute_penalty_exposure(db, shipment, shipment.predicted_delay_days or 0)
 
     if shipment.is_anomaly:
         blockchain_service.add_block(
@@ -205,7 +206,50 @@ def evaluate_shipment_prediction(db: Session, shipment: Shipment) -> None:
         )
 
 
-def evaluate_purchase_order(db: Session, po: PurchaseOrder, supplier: Supplier) -> None:
+def compute_penalty_exposure(db: Session, shipment: Shipment, days_late: float) -> None:
+    """On-chain SLA terms: if the linked purchase order carries an agreed penalty_rate_pct
+    (percent of order value per day late) and this shipment is running late -- predicted or
+    actual -- compute and record the penalty exposure. This is closer to what "smart contract"
+    means in the blockchain-supply-chain literature (an agreed term that self-executes on
+    breach) than pure event logging."""
+    po = shipment.purchase_order
+    if po is None or po.penalty_rate_pct <= 0 or days_late <= 0:
+        return
+
+    exposure = round(po.total_value * (po.penalty_rate_pct / 100) * days_late, 2)
+    po.penalty_exposure = exposure
+    db.add(po)
+    db.commit()
+
+    blockchain_service.add_block(
+        db,
+        event_type="purchase_order.penalty_exposure_computed",
+        payload={
+            "entity_type": "purchase_order",
+            "entity_id": po.id,
+            "shipment_id": shipment.id,
+            "days_late": days_late,
+            "penalty_rate_pct": po.penalty_rate_pct,
+            "penalty_exposure": exposure,
+        },
+        performed_by="smart_contract",
+    )
+    notification_service.create_notification(
+        db,
+        title="SLA Penalty Exposure Computed",
+        message=f"PO '{po.po_number}' is running {days_late:.1f} day(s) late against its agreed "
+        f"{po.penalty_rate_pct:.1f}%/day SLA -- computed penalty exposure: ${exposure:,.2f}.",
+        severity=NotificationSeverity.WARNING,
+        related_entity_type="purchase_order",
+        related_entity_id=po.id,
+        source="smart_contract",
+    )
+
+
+def evaluate_purchase_order(db: Session, po: PurchaseOrder, supplier: Supplier, log_to_blockchain: bool = True) -> None:
+    """log_to_blockchain=False is used by the CSV bulk-import endpoint, which already writes one
+    summary block for the whole batch -- the risk auto-flag and manager notification below still
+    fire per row either way, only the per-row ledger entry is skipped to avoid ledger bloat."""
     if supplier.risk_level.value == "high":
         po.risk_flag = True
         po.risk_notes = f"Auto-flagged: supplier '{supplier.name}' is HIGH risk (score {supplier.risk_score:.1f}%)."
@@ -223,15 +267,16 @@ def evaluate_purchase_order(db: Session, po: PurchaseOrder, supplier: Supplier) 
             source="smart_contract",
         )
 
-    blockchain_service.add_block(
-        db,
-        event_type="purchase_order.created",
-        payload={
-            "entity_type": "purchase_order",
-            "entity_id": po.id,
-            "supplier_id": supplier.id,
-            "total_value": po.total_value,
-            "risk_flag": po.risk_flag,
-        },
-        performed_by="system",
-    )
+    if log_to_blockchain:
+        blockchain_service.add_block(
+            db,
+            event_type="purchase_order.created",
+            payload={
+                "entity_type": "purchase_order",
+                "entity_id": po.id,
+                "supplier_id": supplier.id,
+                "total_value": po.total_value,
+                "risk_flag": po.risk_flag,
+            },
+            performed_by="system",
+        )

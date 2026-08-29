@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { ChatWidget } from "./ChatWidget";
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -10,6 +11,7 @@ const TITLES: Record<string, string> = {
   "/shipments": "Shipment Management",
   "/purchase-orders": "Purchase Order Management",
   "/ai-risk-center": "AI Risk Prediction Engine",
+  "/model-explorer": "Model Explorer",
   "/recommendations": "Recommendation Engine",
   "/blockchain": "Blockchain Explorer",
   "/audit-trail": "Blockchain Audit Trail",
@@ -43,6 +45,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <ChatWidget />
     </div>
   );
 }

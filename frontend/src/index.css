@@ -13,6 +13,8 @@
   --glass-bg-strong: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(255, 255, 255, 0.6);
   --glass-shadow: 0 8px 32px rgba(31, 41, 82, 0.12);
+  --topbar-bg: rgba(255, 255, 255, 0.38);
+  --topbar-shadow: 0 4px 24px rgba(31, 41, 82, 0.08);
 
   --text-primary: #14152b;
   --text-secondary: #4b4d6e;
@@ -33,6 +35,8 @@
   --glass-bg-strong: rgba(24, 25, 48, 0.75);
   --glass-border: rgba(255, 255, 255, 0.09);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --topbar-bg: rgba(15, 16, 36, 0.42);
+  --topbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 
   --text-primary: #f2f2fb;
   --text-secondary: #c2c4e0;
@@ -55,7 +59,7 @@ body,
 body {
   margin: 0;
   color: var(--text-primary);
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: radial-gradient(circle at 15% 10%, var(--bg-accent-1) 0%, transparent 45%),
     radial-gradient(circle at 85% 15%, var(--bg-accent-2) 0%, transparent 45%),
     radial-gradient(circle at 50% 90%, var(--bg-accent-3) 0%, transparent 40%),
@@ -79,6 +83,25 @@ body {
   box-shadow: var(--glass-shadow);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* Purpose-built for the docked top bar -- `.glass-panel-strong`'s all-around drop shadow
+   (tuned for a floating card/modal/dropdown) reads as a shadow bleeding upward past its own
+   top edge on a bar pinned to the top of the viewport, which is what made it look glued on
+   rather than part of the layout. A single hairline bottom border reads as an integrated
+   surface instead. The background itself is deliberately much more transparent than
+   `.glass-panel-strong` (a true frosted-glass navbar look) -- but the blur/saturate is pushed
+   higher than every other glass surface in the app specifically to compensate: at this low an
+   opacity, a weak blur would let scrolled-past content show through as legible shapes/text
+   underneath the bar, which is the "overlap" the transparency must not reintroduce. The strong
+   blur turns whatever scrolls beneath it into an indistinct wash of color, so the bar stays
+   airy without ever becoming see-through in a way that competes with its own content. */
+.app-topbar {
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: var(--topbar-shadow);
+  backdrop-filter: blur(36px) saturate(220%);
+  -webkit-backdrop-filter: blur(36px) saturate(220%);
 }
 
 .glass-card {
@@ -111,6 +134,15 @@ body {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Native <select> renders its open option list via the OS/browser, outside our glass
+   styling and outside backdrop-filter's reach -- without this, options fall back to the
+   browser default (usually a plain white popup with inherited light text), which can be
+   unreadable in dark mode. This forces a solid, theme-matching, always-readable popup. */
+select.glass-input option {
+  background: var(--bg-1);
+  color: var(--text-primary);
 }
 
 .scrollbar-thin::-webkit-scrollbar {

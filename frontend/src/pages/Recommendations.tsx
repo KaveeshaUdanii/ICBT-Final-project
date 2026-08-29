@@ -83,7 +83,7 @@ export function RecommendationsPage() {
               </div>
               <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-blue-600"
                   style={{ width: `${rec.confidence * 100}%` }}
                 />
               </div>

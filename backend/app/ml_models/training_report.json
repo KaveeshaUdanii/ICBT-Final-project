@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-07T18:11:01.051671+00:00",
-  "dataset": "synthetic (Faker + numpy)",
+  "generated_at": "2026-08-29T17:34:29.816462+00:00",
+  "dataset": "synthetic (Faker + numpy), cleaned via the ml_pipeline/notebooks/ preprocessing pipeline -- see ml_pipeline/data/processed/*.csv",
   "supplier_risk_scoring_model": {
     "algorithm": "Logistic Regression + Random Forest (ensemble average)",
     "features": [
@@ -10,35 +10,35 @@
       "avg_lead_time_days",
       "order_volume_last_year"
     ],
-    "training_samples": 487,
-    "test_samples": 163,
+    "training_samples": 750,
+    "test_samples": 250,
     "logistic_regression": {
-      "accuracy": 0.7853,
-      "precision": 0.6705,
-      "recall": 0.9077,
-      "f1_score": 0.7712,
-      "roc_auc": 0.913
+      "accuracy": 0.808,
+      "precision": 0.74,
+      "recall": 0.7708,
+      "f1_score": 0.7551,
+      "roc_auc": 0.8722
     },
     "random_forest": {
-      "accuracy": 0.8221,
-      "precision": 0.75,
-      "recall": 0.8308,
-      "f1_score": 0.7883,
-      "roc_auc": 0.886
+      "accuracy": 0.812,
+      "precision": 0.7692,
+      "recall": 0.7292,
+      "f1_score": 0.7487,
+      "roc_auc": 0.8543
     },
     "ensemble": {
-      "accuracy": 0.8037,
-      "precision": 0.7037,
-      "recall": 0.8769,
-      "f1_score": 0.7808,
-      "roc_auc": 0.9024
+      "accuracy": 0.82,
+      "precision": 0.7629,
+      "recall": 0.7708,
+      "f1_score": 0.7668,
+      "roc_auc": 0.869
     },
     "feature_importance_random_forest": {
-      "on_time_delivery_rate": 0.2338,
-      "defect_rate": 0.2241,
-      "cancellation_rate": 0.2651,
-      "avg_lead_time_days": 0.1887,
-      "order_volume_last_year": 0.0884
+      "on_time_delivery_rate": 0.2742,
+      "defect_rate": 0.2103,
+      "cancellation_rate": 0.2112,
+      "avg_lead_time_days": 0.2427,
+      "order_volume_last_year": 0.0616
     }
   },
   "delay_prediction_model": {
@@ -55,30 +55,30 @@
       "requested_lead_time_days",
       "supplier_order_volume_last_year"
     ],
-    "training_samples": 3150,
-    "test_samples": 1050,
+    "training_samples": 44997,
+    "test_samples": 15000,
     "classifier_metrics": {
-      "accuracy": 0.8143,
-      "precision": 0.847,
-      "recall": 0.9428,
-      "f1_score": 0.8923,
-      "roc_auc": 0.7537
+      "accuracy": 0.8371,
+      "precision": 0.853,
+      "recall": 0.9681,
+      "f1_score": 0.9069,
+      "roc_auc": 0.8219
     },
     "regressor_metrics": {
-      "mae_days": 3.665,
-      "rmse_days": 5.792
+      "mae_days": 3.644,
+      "rmse_days": 5.861
     },
     "feature_importance": {
-      "supplier_on_time_rate": 0.1541,
-      "supplier_defect_rate": 0.1024,
-      "supplier_cancellation_rate": 0.1102,
-      "supplier_avg_lead_time_days": 0.0704,
-      "order_quantity": 0.0855,
-      "quantity_per_lead_time": 0.1152,
-      "month_sin": 0.1167,
-      "month_cos": 0.0931,
-      "requested_lead_time_days": 0.0844,
-      "supplier_order_volume_last_year": 0.0682
+      "supplier_on_time_rate": 0.2014,
+      "supplier_defect_rate": 0.0993,
+      "supplier_cancellation_rate": 0.1037,
+      "supplier_avg_lead_time_days": 0.0415,
+      "order_quantity": 0.0361,
+      "quantity_per_lead_time": 0.1604,
+      "month_sin": 0.1742,
+      "month_cos": 0.101,
+      "requested_lead_time_days": 0.0512,
+      "supplier_order_volume_last_year": 0.0311
     }
   },
   "anomaly_detection_model": {
@@ -92,13 +92,13 @@
       "month_sin",
       "month_cos"
     ],
-    "training_samples": 3000,
+    "training_samples": 59997,
     "contamination": 0.07,
     "evaluation_against_injected_anomalies": {
-      "accuracy": 0.909,
-      "precision": 0.319,
-      "recall": 0.3401,
-      "f1_score": 0.3292
+      "accuracy": 0.915,
+      "precision": 0.3224,
+      "recall": 0.3755,
+      "f1_score": 0.3469
     },
     "note": "Metrics are evaluated against synthetically injected anomalies for validation purposes only; the model itself is trained unsupervised, matching the proposal's design."
   },
@@ -114,23 +114,23 @@
       "month_cos",
       "quantity_to_reorder_ratio"
     ],
-    "training_samples": 2625,
-    "test_samples": 875,
+    "training_samples": 33698,
+    "test_samples": 11233,
     "regressor_metrics": {
-      "mae_units": 27.18,
-      "rmse_units": 36.1,
-      "mean_actual_demand_units": 120.12,
+      "mae_units": 26.39,
+      "rmse_units": 35.21,
+      "mean_actual_demand_units": 116.54,
       "mae_as_pct_of_mean": 22.6
     },
     "feature_importance": {
-      "quantity_on_hand": 0.0246,
-      "reorder_level": 0.4381,
-      "unit_cost": 0.094,
-      "lead_time_days": 0.0549,
-      "supplier_on_time_rate": 0.0838,
-      "month_sin": 0.2128,
-      "month_cos": 0.0673,
-      "quantity_to_reorder_ratio": 0.0246
+      "quantity_on_hand": 0.0097,
+      "reorder_level": 0.5226,
+      "unit_cost": 0.0757,
+      "lead_time_days": 0.0409,
+      "supplier_on_time_rate": 0.0761,
+      "month_sin": 0.1967,
+      "month_cos": 0.0696,
+      "quantity_to_reorder_ratio": 0.0087
     },
     "note": "Additional model beyond the proposal's 3 required models -- predicts next-30-day material consumption to support proactive procurement (Warehouse Manager dashboard)."
   },
@@ -146,25 +146,40 @@
       "quantity_to_reorder_ratio",
       "expected_demand_next_30_days"
     ],
-    "training_samples": 2625,
-    "test_samples": 875,
+    "training_samples": 33698,
+    "test_samples": 11233,
     "classifier_metrics": {
-      "accuracy": 0.9074,
-      "precision": 0.7973,
-      "recall": 0.6982,
-      "f1_score": 0.7445,
-      "roc_auc": 0.8984
+      "accuracy": 0.911,
+      "precision": 0.8887,
+      "recall": 0.6718,
+      "f1_score": 0.7651,
+      "roc_auc": 0.8868
     },
     "feature_importance": {
-      "quantity_on_hand": 0.2791,
-      "reorder_level": 0.0209,
-      "lead_time_days": 0.1219,
-      "supplier_on_time_rate": 0.012,
-      "month_sin": 0.0076,
-      "month_cos": 0.0067,
-      "quantity_to_reorder_ratio": 0.4759,
-      "expected_demand_next_30_days": 0.0759
+      "quantity_on_hand": 0.256,
+      "reorder_level": 0.0059,
+      "lead_time_days": 0.0753,
+      "supplier_on_time_rate": 0.0017,
+      "month_sin": 0.0017,
+      "month_cos": 0.0013,
+      "quantity_to_reorder_ratio": 0.6192,
+      "expected_demand_next_30_days": 0.0387
     },
     "note": "Additional model beyond the proposal's 3 required models -- consumes the Demand Forecasting Model's prediction as one of its own input features (a stacked pipeline)."
+  },
+  "chatbot_intent_model": {
+    "algorithm": "TF-IDF (1-2 grams) + Logistic Regression",
+    "intents": [
+      "greeting",
+      "help",
+      "pending_pos",
+      "performance",
+      "po_status",
+      "shipment_status",
+      "thanks"
+    ],
+    "training_examples": 50,
+    "training_accuracy": 1.0,
+    "note": "Local, no-external-API chatbot for the Supplier Portal -- classifies intent only; every answer is generated from the caller's own real, scoped backend data, not the model."
   }
 }

@@ -81,6 +81,17 @@ def generate_suppliers(n: int = 650, seed: int = SEED) -> list[SyntheticSupplier
     return suppliers
 
 
+def _label_high_risk(true_risk: float, rng: np.random.Generator) -> int:
+    # Binary "is_high_risk" label: a threshold on the latent true_risk propensity (as a real
+    # analyst would retrospectively flag underperforming suppliers), with a small random label
+    # flip to simulate occasional real-world mislabeling -- not a raw Bernoulli draw on the
+    # propensity itself, which would make the label irreducibly noisy and cap accuracy near chance.
+    is_high_risk = int(true_risk > 0.32)
+    if rng.random() < 0.06:
+        is_high_risk = 1 - is_high_risk
+    return is_high_risk
+
+
 def suppliers_to_training_frame(suppliers: list[SyntheticSupplier], seed: int = SEED) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     rows = []
@@ -88,21 +99,46 @@ def suppliers_to_training_frame(suppliers: list[SyntheticSupplier], seed: int = 
         features = build_risk_features(
             s.on_time_delivery_rate, s.defect_rate, s.cancellation_rate, s.avg_lead_time_days, s.order_volume_last_year
         )
-        # Binary "is_high_risk" label: a threshold on the latent true_risk propensity (as a real
-        # analyst would retrospectively flag underperforming suppliers), with a small random label
-        # flip to simulate occasional real-world mislabeling -- not a raw Bernoulli draw on the
-        # propensity itself, which would make the label irreducibly noisy and cap accuracy near chance.
-        is_high_risk = int(s.true_risk > 0.32)
-        if rng.random() < 0.06:
-            is_high_risk = 1 - is_high_risk
+        is_high_risk = _label_high_risk(s.true_risk, rng)
         rows.append({**features, "is_high_risk": is_high_risk, "true_risk": s.true_risk})
     return pd.DataFrame(rows)
 
 
-def generate_shipments_training_frame(suppliers: list[SyntheticSupplier], n: int = 3600, seed: int = SEED) -> pd.DataFrame:
-    rng = np.random.default_rng(seed + 1)
+def suppliers_to_raw_facts(suppliers: list[SyntheticSupplier], seed: int = SEED) -> pd.DataFrame:
+    """Raw, ERP-export-shaped supplier facts -- one row per supplier with its identity and
+    observable performance metrics, plus the is_high_risk label a real ops/audit team would
+    have assigned retrospectively. Excludes the synthetic-only latent `true_risk` variable,
+    which a real company would never have on file. Uses the identical labeling logic and rng
+    draw order as suppliers_to_training_frame, so is_high_risk values match 1:1 for the same seed."""
+    rng = np.random.default_rng(seed)
     rows = []
+    for i, s in enumerate(suppliers):
+        is_high_risk = _label_high_risk(s.true_risk, rng)
+        rows.append(
+            {
+                "supplier_code": f"SUP-{i + 1:05d}",
+                "supplier_name": s.name,
+                "country": s.country,
+                "category": s.category,
+                "on_time_delivery_rate": s.on_time_delivery_rate,
+                "defect_rate": s.defect_rate,
+                "cancellation_rate": s.cancellation_rate,
+                "avg_lead_time_days": s.avg_lead_time_days,
+                "order_volume_last_year": s.order_volume_last_year,
+                "is_high_risk": is_high_risk,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _simulate_shipment_facts(suppliers: list[SyntheticSupplier], n: int, seed: int) -> list[dict]:
+    """Single source of truth for the shipment ground-truth generative process, producing
+    raw facts (pre-feature-engineering). Both generate_shipments_training_frame (engineered
+    features, used by train.py before the notebook refactor) and generate_shipments_raw_facts
+    (raw ERP-shaped columns, used by generate_raw_datasets.py) are thin views over this."""
+    rng = np.random.default_rng(seed + 1)
     start = date(2023, 1, 1)
+    facts = []
 
     for _ in range(n):
         s = suppliers[rng.integers(0, len(suppliers))]
@@ -134,34 +170,82 @@ def generate_shipments_training_frame(suppliers: list[SyntheticSupplier], n: int
             delay_days += float(rng.uniform(20, 45))
             observed_quantity = base_quantity * float(rng.choice([0.15, 3.2]))
 
+        facts.append(
+            {
+                "supplier": s,
+                "order_date": order_date,
+                "expected_delivery_date": expected_delivery,
+                "requested_lead_time_days": requested_lead,
+                "quantity": observed_quantity,
+                "delay_days": round(delay_days, 2),
+                "is_delayed": is_delayed,
+                "is_anomaly": is_anomaly,
+            }
+        )
+    return facts
+
+
+def generate_shipments_training_frame(suppliers: list[SyntheticSupplier], n: int = 3600, seed: int = SEED) -> pd.DataFrame:
+    facts = _simulate_shipment_facts(suppliers, n, seed)
+    rows = []
+    for f in facts:
+        s = f["supplier"]
         features = build_delay_features(
             s.on_time_delivery_rate,
             s.defect_rate,
             s.cancellation_rate,
             s.avg_lead_time_days,
-            observed_quantity,
-            order_date,
-            expected_delivery,
+            f["quantity"],
+            f["order_date"],
+            f["expected_delivery_date"],
             s.order_volume_last_year,
         )
         anomaly_features = build_anomaly_features(
-            observed_quantity,
-            requested_lead,
+            f["quantity"],
+            f["requested_lead_time_days"],
             s.on_time_delivery_rate,
             s.defect_rate,
             s.cancellation_rate,
-            expected_delivery,
+            f["expected_delivery_date"],
         )
-
         rows.append(
             {
                 **features,
                 **{f"anom_{k}": v for k, v in anomaly_features.items() if k not in features},
-                "quantity": observed_quantity,
-                "requested_lead_time_days": requested_lead,
-                "delay_days": round(delay_days, 2),
-                "is_delayed": is_delayed,
-                "is_anomaly": is_anomaly,
+                "quantity": f["quantity"],
+                "requested_lead_time_days": f["requested_lead_time_days"],
+                "delay_days": f["delay_days"],
+                "is_delayed": f["is_delayed"],
+                "is_anomaly": f["is_anomaly"],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def generate_shipments_raw_facts(suppliers: list[SyntheticSupplier], n: int = 3600, seed: int = SEED) -> pd.DataFrame:
+    """Raw, ERP-export-shaped shipment facts (real dates, supplier identity, observed
+    outcomes) -- the pre-feature-engineering columns a real company's system would contain,
+    before any modeling feature (month_sin, quantity_per_lead_time, ...) is derived."""
+    facts = _simulate_shipment_facts(suppliers, n, seed)
+    rows = []
+    for f in facts:
+        s = f["supplier"]
+        rows.append(
+            {
+                "supplier_name": s.name,
+                "supplier_country": s.country,
+                "supplier_category": s.category,
+                "supplier_on_time_delivery_rate": s.on_time_delivery_rate,
+                "supplier_defect_rate": s.defect_rate,
+                "supplier_cancellation_rate": s.cancellation_rate,
+                "supplier_avg_lead_time_days": s.avg_lead_time_days,
+                "supplier_order_volume_last_year": s.order_volume_last_year,
+                "order_date": f["order_date"],
+                "expected_delivery_date": f["expected_delivery_date"],
+                "quantity": round(f["quantity"], 1),
+                "delay_days": f["delay_days"],
+                "is_delayed": f["is_delayed"],
+                "is_anomaly": f["is_anomaly"],
             }
         )
     return pd.DataFrame(rows)
@@ -196,20 +280,20 @@ def generate_materials(n: int = 500, seed: int = SEED) -> list[SyntheticMaterial
     return materials
 
 
-def generate_material_demand_training_frame(
-    materials: list[SyntheticMaterial], n: int = 3500, seed: int = SEED
-) -> pd.DataFrame:
-    """Ground truth: a material's next-30-day consumption is driven by its latent demand
-    intensity and apparel peak-season strain (Aug-Dec), plus noise. The stockout label
-    additionally uses a *noisier* draw of that same demand (representing real demand
-    volatility a forecast can't fully capture) so the classifier can't trivially derive
-    the label from the forecast feature alone."""
+def _simulate_demand_facts(materials: list[SyntheticMaterial], n: int, seed: int) -> list[dict]:
+    """Single source of truth for the demand/stockout ground-truth generative process,
+    producing raw facts (pre-feature-engineering). Ground truth: a material's next-30-day
+    consumption is driven by its latent demand intensity and apparel peak-season strain
+    (Aug-Dec), plus noise. The stockout label additionally uses a *noisier* draw of that
+    same demand (representing real demand volatility a forecast can't fully capture) so
+    the classifier can't trivially derive the label from the forecast feature alone."""
     rng = np.random.default_rng(seed + 3)
     start = date(2023, 1, 1)
-    rows = []
+    facts = []
 
-    for _ in range(n):
-        m = materials[rng.integers(0, len(materials))]
+    for material_index in range(n):
+        m_idx = int(rng.integers(0, len(materials)))
+        m = materials[m_idx]
         as_of = start + timedelta(days=int(rng.integers(0, 900)))
         seasonal_strain = 1.4 if as_of.month in (8, 9, 10, 11, 12) else 0.9
 
@@ -222,27 +306,77 @@ def generate_material_demand_training_frame(
 
         quantity_on_hand = float(np.clip(rng.normal(m.reorder_level * 1.3, m.reorder_level * 0.9), 0, m.reorder_level * 5))
 
-        demand_features = build_demand_features(
-            quantity_on_hand, m.reorder_level, m.unit_cost, m.lead_time_days, m.supplier_on_time_rate, as_of
-        )
-
         daily_consumption = stockout_actual_demand / 30.0
         depletion_at_lead_time = quantity_on_hand - daily_consumption * m.lead_time_days
         stockout = int(depletion_at_lead_time < 0)
         if rng.random() < 0.05:  # real-world noise: emergency reorders, demand shocks, etc.
             stockout = 1 - stockout
 
-        stockout_features = build_stockout_features(
-            quantity_on_hand, m.reorder_level, m.lead_time_days, m.supplier_on_time_rate, as_of, forecast_demand
+        facts.append(
+            {
+                "material": m,
+                "material_pool_index": m_idx,
+                "as_of_date": as_of,
+                "quantity_on_hand": quantity_on_hand,
+                "forecast_demand_next_30_days": forecast_demand,
+                "actual_demand_next_30_days": round(actual_demand_next_30_days, 2),
+                "stockout_within_lead_time": stockout,
+            }
         )
+    return facts
 
+
+def generate_material_demand_training_frame(
+    materials: list[SyntheticMaterial], n: int = 3500, seed: int = SEED
+) -> pd.DataFrame:
+    facts = _simulate_demand_facts(materials, n, seed)
+    rows = []
+    for f in facts:
+        m = f["material"]
+        demand_features = build_demand_features(
+            f["quantity_on_hand"], m.reorder_level, m.unit_cost, m.lead_time_days, m.supplier_on_time_rate, f["as_of_date"]
+        )
+        stockout_features = build_stockout_features(
+            f["quantity_on_hand"],
+            m.reorder_level,
+            m.lead_time_days,
+            m.supplier_on_time_rate,
+            f["as_of_date"],
+            f["forecast_demand_next_30_days"],
+        )
         rows.append(
             {
                 **demand_features,
                 **{f"stk_{k}": v for k, v in stockout_features.items() if k not in demand_features},
-                "expected_demand_next_30_days": forecast_demand,
-                "actual_demand_next_30_days": round(actual_demand_next_30_days, 2),
-                "stockout_within_lead_time": stockout,
+                "expected_demand_next_30_days": f["forecast_demand_next_30_days"],
+                "actual_demand_next_30_days": f["actual_demand_next_30_days"],
+                "stockout_within_lead_time": f["stockout_within_lead_time"],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def generate_material_demand_raw_facts(materials: list[SyntheticMaterial], n: int = 3500, seed: int = SEED) -> pd.DataFrame:
+    """Raw, ERP-export-shaped material/demand facts -- a material master (category, cost,
+    lead time, reorder policy) joined with a dated consumption record, before any modeling
+    feature (month_sin, quantity_to_reorder_ratio, ...) is derived."""
+    facts = _simulate_demand_facts(materials, n, seed)
+    rows = []
+    for f in facts:
+        m = f["material"]
+        rows.append(
+            {
+                "material_code": f"MAT-{f['material_pool_index'] + 1:05d}",
+                "material_category": m.category,
+                "unit_cost": round(m.unit_cost, 2),
+                "lead_time_days": m.lead_time_days,
+                "reorder_level": m.reorder_level,
+                "supplier_on_time_rate": round(m.supplier_on_time_rate, 4),
+                "as_of_date": f["as_of_date"],
+                "quantity_on_hand": round(f["quantity_on_hand"], 1),
+                "forecast_demand_next_30_days": round(f["forecast_demand_next_30_days"], 1),
+                "actual_demand_next_30_days": f["actual_demand_next_30_days"],
+                "stockout_within_lead_time": f["stockout_within_lead_time"],
             }
         )
     return pd.DataFrame(rows)

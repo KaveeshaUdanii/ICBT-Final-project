@@ -1,0 +1,14 @@
+# Extra packages needed to reopen and rerun the notebooks in notebooks/.
+# Everything else (pandas, numpy, scikit-learn, xgboost, joblib) is already in
+# backend/requirements.txt -- install that first, then this file.
+jupyter
+notebook
+ipykernel
+matplotlib
+seaborn
+nbformat
+lightgbm
+catboost
+plotly
+statsmodels
+streamlit

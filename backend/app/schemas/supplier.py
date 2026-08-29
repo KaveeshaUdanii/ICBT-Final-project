@@ -46,3 +46,37 @@ class SupplierRead(SupplierBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SupplierProfileUpdate(BaseModel):
+    """Self-service profile edit for a Supplier-portal account -- deliberately limited to
+    contact details. Company name, category, country, and every performance metric stay
+    admin/manager-only: a supplier changing their own on_time_delivery_rate would defeat the
+    whole point of it being a company-verified figure."""
+
+    contact_email: EmailStr | None = None
+    contact_phone: str | None = None
+
+
+class SupplierRiskHistoryEntry(BaseModel):
+    risk_score: float
+    risk_level: str | None = None
+    scored_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SupplierExternalRead(SupplierBase):
+    """What a Supplier-portal account may see of its own linked record. Deliberately omits
+    risk_score/risk_level/last_scored_at -- the AI Risk Prediction Engine's internal
+    classification of this supplier, which is company-confidential (comparable to a vendor
+    seeing their own internal credit rating). The performance metrics inherited from
+    SupplierBase (on_time_delivery_rate, defect_rate, etc.) are kept: those are factual
+    records of the supplier's own transaction history, not an internal judgment about them."""
+
+    id: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

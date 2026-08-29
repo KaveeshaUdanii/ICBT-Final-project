@@ -1,5 +1,7 @@
 from app.models.audit_log import AuditLog
 from app.models.blockchain import Block, SmartContractRule
+from app.models.document import Document
+from app.models.message import Message
 from app.models.notification import Notification
 from app.models.purchase_order import PurchaseOrder
 from app.models.raw_material import RawMaterial
@@ -14,6 +16,8 @@ __all__ = [
     "AuditLog",
     "Block",
     "SmartContractRule",
+    "Document",
+    "Message",
     "Notification",
     "PurchaseOrder",
     "RawMaterial",

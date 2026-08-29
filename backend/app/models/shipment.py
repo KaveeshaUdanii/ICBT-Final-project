@@ -37,6 +37,25 @@ class Shipment(Base):
     is_anomaly: Mapped[bool] = mapped_column(default=False)
     anomaly_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # Supplier-side shipping info -- the supplier marks their own shipment "in transit" and
+    # provides these, rather than an internal staff member typing it in on their behalf.
+    carrier: Mapped[str] = mapped_column(String(120), default="")
+    tracking_number: Mapped[str] = mapped_column(String(120), default="")
+
+    # Multi-party delivery confirmation: status only auto-advances to "delivered" once both
+    # sides have confirmed. Internal staff can still force it via the generic update endpoint
+    # (an operational necessity), but doing so without the supplier's confirmation is logged to
+    # the blockchain as a distinct, auditable override event rather than silently allowed.
+    supplier_confirmed_delivery: Mapped[bool] = mapped_column(default=False)
+    supplier_confirmed_delivery_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    staff_confirmed_delivery: Mapped[bool] = mapped_column(default=False)
+    staff_confirmed_delivery_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Data-entry anomaly check (real-time, at creation) -- see purchase_order.py for the same
+    # pattern; here it checks shipment quantity against this supplier/category's history.
+    data_entry_flag: Mapped[bool] = mapped_column(default=False)
+    data_entry_warning: Mapped[str] = mapped_column(String(300), default="")
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

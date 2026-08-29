@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { AlertTriangle, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import { aiApi, materialsApi, suppliersApi } from "../api/endpoints";
 import { apiErrorMessage } from "../api/client";
 import type { MaterialCategory, RawMaterial, Supplier } from "../types";
@@ -11,6 +11,7 @@ import { Badge } from "../components/ui/Badge";
 import { Field, Input, Select } from "../components/ui/Input";
 import { Modal } from "../components/ui/Modal";
 import { EmptyState, LoadingState, PageHeader } from "../components/ui/Feedback";
+import { CsvImportModal } from "../components/CsvImportModal";
 
 function stockoutTone(prob: number | null): "success" | "warning" | "danger" | "neutral" {
   if (prob === null) return "neutral";
@@ -39,6 +40,7 @@ export function RawMaterialsPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [onlyReorder, setOnlyReorder] = useState(false);
+  const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<RawMaterial | null>(null);
   const [form, setForm] = useState(emptyForm());
@@ -46,6 +48,7 @@ export function RawMaterialsPage() {
   const user = useAuthStore((s) => s.user);
   const canManage = user?.role !== "supplier";
   const [forecastingId, setForecastingId] = useState<number | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -71,6 +74,18 @@ export function RawMaterialsPage() {
   function supplierName(id: number) {
     return suppliers.find((s) => s.id === id)?.name ?? `#${id}`;
   }
+
+  const filteredMaterials = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return materials;
+    return materials.filter(
+      (m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.category.toLowerCase().includes(q) ||
+        supplierName(m.supplier_id).toLowerCase().includes(q)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [materials, search, suppliers]);
 
   function openCreate() {
     setEditing(null);
@@ -147,10 +162,24 @@ export function RawMaterialsPage() {
         description="Track inventory levels, reorder thresholds, and supplier-linked lead times."
         actions={
           <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
+              <Input
+                placeholder="Search materials..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 w-52"
+              />
+            </div>
             <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] glass-panel rounded-xl px-3 py-2">
               <input type="checkbox" checked={onlyReorder} onChange={(e) => setOnlyReorder(e.target.checked)} />
               Needs reorder only
             </label>
+            {canManage && (
+              <Button variant="secondary" onClick={() => setImportOpen(true)} size="sm">
+                <Upload className="h-4 w-4" /> Import CSV
+              </Button>
+            )}
             {canManage && (
               <Button onClick={openCreate} size="sm">
                 <Plus className="h-4 w-4" /> Add Material
@@ -163,7 +192,7 @@ export function RawMaterialsPage() {
       <GlassCard className="overflow-hidden">
         {loading ? (
           <LoadingState message="Loading raw materials..." />
-        ) : materials.length === 0 ? (
+        ) : filteredMaterials.length === 0 ? (
           <EmptyState message="No raw materials found." />
         ) : (
           <div className="overflow-x-auto scrollbar-thin">
@@ -182,7 +211,7 @@ export function RawMaterialsPage() {
                 </tr>
               </thead>
               <tbody>
-                {materials.map((material) => (
+                {filteredMaterials.map((material) => (
                   <tr key={material.id} className="border-b border-white/5 hover:bg-white/5 transition">
                     <td className="px-5 py-3">
                       <p className="font-medium text-[var(--text-primary)]">{material.name}</p>
@@ -327,6 +356,18 @@ export function RawMaterialsPage() {
           </Button>
         </div>
       </Modal>
+
+      <CsvImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title="Import Raw Materials from CSV"
+        description="Bulk-add raw materials from a CSV export. Use either a supplier_id column or a supplier_name column (matched by exact name)."
+        templateFilename="raw_materials_template.csv"
+        templateColumns={["name", "category", "unit", "quantity_on_hand", "reorder_level", "unit_cost", "lead_time_days", "supplier_name"]}
+        templateExampleRow={["Cotton Poplin", "fabric", "meters", 500, 100, 3.5, 14, "Acme Textiles Ltd"]}
+        importFn={materialsApi.importCsv}
+        onImported={load}
+      />
     </div>
   );
 }

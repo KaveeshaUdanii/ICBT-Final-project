@@ -5,7 +5,10 @@ from pydantic import ConfigDict, BaseModel
 
 class FeatureContribution(BaseModel):
     feature: str
+    label: str
     value: float
+    display_value: str
+    typical_display_value: str
     contribution: float
     direction: str  # "increases_risk" | "decreases_risk"
     explanation: str

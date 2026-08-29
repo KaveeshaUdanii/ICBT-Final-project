@@ -6,6 +6,7 @@ import {
   Package,
   ClipboardList,
   BrainCircuit,
+  Microscope,
   Sparkles,
   Blocks,
   ScrollText,
@@ -39,6 +40,7 @@ const NAV_ITEMS: { to: string; label: string; icon: typeof LayoutDashboard; end?
     roles: ["admin", "supply_chain_manager", "supplier"],
   },
   { to: "/ai-risk-center", label: "AI Risk Center", icon: BrainCircuit, roles: ["admin", "supply_chain_manager"] },
+  { to: "/model-explorer", label: "Model Explorer", icon: Microscope, roles: ["admin", "supply_chain_manager"] },
   { to: "/recommendations", label: "Recommendations", icon: Sparkles, roles: ["admin", "supply_chain_manager"] },
   { to: "/blockchain", label: "Blockchain Explorer", icon: Blocks, roles: ["admin", "supply_chain_manager"] },
   { to: "/audit-trail", label: "Audit Trail", icon: ScrollText, roles: ["admin", "supply_chain_manager"] },
@@ -58,7 +60,7 @@ export function Sidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; onNav
       )}
     >
       <div className="px-6 py-6 flex items-center gap-2.5">
-        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
           <BrainCircuit className="h-5 w-5 text-white" />
         </div>
         <div>

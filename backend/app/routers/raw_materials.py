@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,7 @@ from app.models.raw_material import RawMaterial
 from app.models.supplier import Supplier
 from app.models.user import User
 from app.schemas.raw_material import RawMaterialCreate, RawMaterialRead, RawMaterialUpdate
-from app.services import recommendation_service, smart_contract_service
+from app.services import csv_import_service, recommendation_service, smart_contract_service
 
 router = APIRouter(prefix="/api/raw-materials", tags=["Raw Material Management"])
 
@@ -91,3 +91,30 @@ def delete_material(
     db.delete(material)
     db.commit()
     return None
+
+
+@router.post("/import-csv")
+async def import_materials_csv(
+    file: UploadFile,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_staff),
+):
+    """Bulk-imports raw materials from a CSV export -- the way most real ERP systems bring data
+    in, rather than one row at a time through the form above. Accepts either a `supplier_id`
+    column or a human-friendly `supplier_name` column (resolved by exact name match)."""
+    allowed_fields = set(RawMaterialCreate.model_fields.keys())
+
+    def build(row: dict):
+        payload_dict = csv_import_service.row_payload(row, allowed_fields)
+        supplier_name = csv_import_service.cell(row, "supplier_name")
+        if "supplier_id" not in payload_dict and supplier_name:
+            supplier = db.execute(select(Supplier).where(Supplier.name == supplier_name)).scalars().first()
+            if not supplier:
+                raise ValueError(f"Supplier '{supplier_name}' not found.")
+            payload_dict["supplier_id"] = supplier.id
+        payload = RawMaterialCreate(**payload_dict)
+        if not db.get(Supplier, payload.supplier_id):
+            raise ValueError(f"Supplier id {payload.supplier_id} does not exist.")
+        return RawMaterial(**payload.model_dump())
+
+    return await csv_import_service.import_csv(db, file, "raw_material", build, current_user.email)

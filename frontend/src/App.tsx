@@ -9,6 +9,7 @@ import { RawMaterialsPage } from "./pages/RawMaterials";
 import { ShipmentsPage } from "./pages/Shipments";
 import { PurchaseOrdersPage } from "./pages/PurchaseOrders";
 import { AIRiskCenterPage } from "./pages/AIRiskCenter";
+import { ModelDashboardPage } from "./pages/ModelDashboard";
 import { RecommendationsPage } from "./pages/Recommendations";
 import { BlockchainExplorerPage } from "./pages/BlockchainExplorer";
 import { AuditTrailPage } from "./pages/AuditTrail";
@@ -68,6 +69,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={["admin", "supply_chain_manager"]}>
               <AIRiskCenterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/model-explorer"
+          element={
+            <ProtectedRoute roles={["admin", "supply_chain_manager"]}>
+              <ModelDashboardPage />
             </ProtectedRoute>
           }
         />

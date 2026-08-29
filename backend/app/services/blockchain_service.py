@@ -14,10 +14,13 @@ import json
 from datetime import datetime, timezone
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
 from app.models.blockchain import Block
+
+MAX_APPEND_ATTEMPTS = 8
 
 GENESIS_PREVIOUS_HASH = "0" * 64
 
@@ -44,27 +47,44 @@ def get_latest_block(db: Session) -> Block | None:
 
 
 def add_block(db: Session, event_type: str, payload: dict, performed_by: str = "system") -> Block:
-    """Appends a new immutable block to the chain and mirrors it into the audit trail."""
-    latest = get_latest_block(db)
-    block_index = (latest.block_index + 1) if latest else 0
-    previous_hash = latest.hash if latest else GENESIS_PREVIOUS_HASH
-    timestamp = datetime.now(timezone.utc).isoformat()
-    nonce = 0
+    """Appends a new immutable block to the chain and mirrors it into the audit trail.
 
-    block_hash = _compute_hash(block_index, timestamp, event_type, payload, performed_by, previous_hash, nonce)
+    block_index is assigned by reading the current latest block and adding one -- under
+    concurrent requests (e.g. the Admin dashboard's "Refresh All AI Models" button, which
+    fires several bulk-scoring endpoints in parallel, each appending many blocks in a loop)
+    two requests can both read the same "latest" block before either commits, then race to
+    insert the same next index and hit the table's UNIQUE constraint. Rather than take a
+    DB-specific row lock (Postgres supports SELECT ... FOR UPDATE; SQLite, still supported
+    here as a fallback, does not), retry with a fresh read on conflict -- portable to both
+    and correct as long as attempts stay bounded.
+    """
+    for attempt in range(MAX_APPEND_ATTEMPTS):
+        latest = get_latest_block(db)
+        block_index = (latest.block_index + 1) if latest else 0
+        previous_hash = latest.hash if latest else GENESIS_PREVIOUS_HASH
+        timestamp = datetime.now(timezone.utc).isoformat()
+        nonce = 0
 
-    block = Block(
-        block_index=block_index,
-        timestamp=timestamp,
-        event_type=event_type,
-        payload=payload,
-        performed_by=performed_by,
-        previous_hash=previous_hash,
-        nonce=nonce,
-        hash=block_hash,
-    )
-    db.add(block)
-    db.flush()  # populate block.id without committing
+        block_hash = _compute_hash(block_index, timestamp, event_type, payload, performed_by, previous_hash, nonce)
+
+        block = Block(
+            block_index=block_index,
+            timestamp=timestamp,
+            event_type=event_type,
+            payload=payload,
+            performed_by=performed_by,
+            previous_hash=previous_hash,
+            nonce=nonce,
+            hash=block_hash,
+        )
+        db.add(block)
+        try:
+            db.flush()  # populate block.id without committing
+            break
+        except IntegrityError:
+            db.rollback()
+            if attempt == MAX_APPEND_ATTEMPTS - 1:
+                raise
 
     audit = AuditLog(
         action=event_type,

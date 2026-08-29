@@ -13,6 +13,9 @@ from app.routers import (
     audit,
     auth,
     blockchain,
+    chatbot,
+    documents,
+    messages,
     notifications,
     purchase_orders,
     raw_materials,
@@ -72,6 +75,9 @@ for router in (
     notifications.router,
     scenarios.router,
     analytics.router,
+    messages.router,
+    documents.router,
+    chatbot.router,
 ):
     app.include_router(router)
 

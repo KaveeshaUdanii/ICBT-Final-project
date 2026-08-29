@@ -28,6 +28,28 @@ from app.core.config import settings
 
 MODELS_DIR = settings.ML_MODELS_DIR
 
+# Features that are naturally a 0-1 fraction -- rendered as a percentage rather than a raw
+# decimal (e.g. "60%" instead of "0.60"), which reads as a business metric instead of a
+# model-internal value.
+_PERCENT_FEATURES = {
+    "on_time_delivery_rate",
+    "defect_rate",
+    "cancellation_rate",
+    "supplier_on_time_rate",
+    "supplier_defect_rate",
+    "supplier_cancellation_rate",
+}
+
+
+def _format_value(feature: str, value: float) -> str:
+    if feature in _PERCENT_FEATURES:
+        return f"{value * 100:.0f}%"
+    if feature.endswith("_days"):
+        return f"{value:.0f} days"
+    if abs(value - round(value)) < 1e-9:
+        return f"{value:,.0f}"
+    return f"{value:,.1f}"
+
 
 @lru_cache(maxsize=1)
 def _load_feature_stats() -> dict:
@@ -96,18 +118,24 @@ def explain_instance(
         raises = contribution > 0 if higher_is_worse else contribution < 0
         direction = "increases_risk" if raises else "decreases_risk"
         label = FEATURE_LABELS.get(f, f)
-        # Reports the model's local attribution for *this* case rather than asserting a
-        # general "higher/lower than typical always does X" rule -- the underlying models
-        # (Random Forest, XGBoost, Isolation Forest) can be non-monotonic, so a feature's
-        # effect near this instance does not have to match its global correlation direction.
-        explanation = (
-            f"{label} (value: {val:.2f}, typical: {mean_val:.2f}) pushes this specific prediction "
-            f"{'higher' if raises else 'lower'}, contributing {abs(contribution):.2f} points in that direction."
-        )
+        display_value = _format_value(f, val)
+        typical_display_value = _format_value(f, mean_val)
+        # Short and data-forward rather than a full repeated sentence per factor (direction
+        # and relative magnitude are already carried by the row's icon/color and bar in the
+        # UI, so the text only needs to add the one thing they can't: this case's actual
+        # number against what's typical for this model). Reports the model's local
+        # attribution for *this* case rather than asserting a general "higher/lower than
+        # typical always does X" rule -- the underlying models (Random Forest, XGBoost,
+        # Isolation Forest) can be non-monotonic, so a feature's effect near this instance
+        # does not have to match its global correlation direction.
+        explanation = f"{display_value} recorded, vs. a typical {typical_display_value} for this model."
         factors.append(
             {
                 "feature": f,
+                "label": label,
                 "value": val,
+                "display_value": display_value,
+                "typical_display_value": typical_display_value,
                 "contribution": round(contribution, 4),
                 "direction": direction,
                 "explanation": explanation,

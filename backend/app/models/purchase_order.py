@@ -33,6 +33,22 @@ class PurchaseOrder(Base):
     risk_flag: Mapped[bool] = mapped_column(default=False)
     risk_notes: Mapped[str] = mapped_column(String(500), default="")
 
+    # Supplier acceptance workflow -- a PO otherwise just appears in the supplier's portal with
+    # no way for them to act on it. "pending" | "accepted" | "declined".
+    supplier_response: Mapped[str] = mapped_column(String(20), default="pending")
+    decline_reason: Mapped[str] = mapped_column(String(300), default="")
+
+    # On-chain SLA terms: an agreed penalty rate (percent of order value per day late), set at
+    # creation, and the computed exposure once a delay is known (predicted or actual).
+    penalty_rate_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    penalty_exposure: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Data-entry anomaly check (real-time, at creation) -- distinct from the post-hoc shipment
+    # Anomaly Detection model: flags an implausible quantity/price for this supplier/category
+    # *before* the record is ever acted on.
+    data_entry_flag: Mapped[bool] = mapped_column(default=False)
+    data_entry_warning: Mapped[str] = mapped_column(String(300), default="")
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
